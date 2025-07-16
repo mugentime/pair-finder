@@ -7,7 +7,11 @@ const app = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ route, method, key, secret, params })
-    }).then(r => r.json());
+    }).then(async r => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.msg || 'API error');
+      return data;
+    });
   },
 
   fetchSimpleEarn()   { return this.proxy('/sapi/v1/simple-earn/flexible/list', 'GET', { size: 200 }); },
@@ -21,10 +25,14 @@ const app = {
     const lookback = +document.getElementById('lookback').value || 30;
     document.getElementById('results').innerText = 'Loading…';
 
-    const [earn, loan] = await Promise.all([this.fetchSimpleEarn(), this.fetchLoanable()]);
-
-    console.log('Earn response:', earn);
-    console.log('Loan response:', loan);
+    let earn, loan;
+    try {
+      [earn, loan] = await Promise.all([this.fetchSimpleEarn(), this.fetchLoanable()]);
+    } catch (err) {
+      document.getElementById('results').innerText = `Error: ${err.message}`;
+      console.error('Fetch error:', err);
+      return;
+    }
 
     const earnRows = earn?.data?.rows || earn?.rows;
     const loanRows = loan?.rows || loan?.data?.rows;
@@ -43,13 +51,19 @@ const app = {
       for (const borrow of Object.keys(borrowMap)) {
         if (collateral === borrow) continue;
 
-        const [cK, bK] = await Promise.all([
-          this.fetchKlines(collateral + 'USDT', '1d', lookback),
-          this.fetchKlines(borrow     + 'USDT', '1d', lookback)
-        ]);
+        let cK, bK;
+        try {
+          [cK, bK] = await Promise.all([
+            this.fetchKlines(collateral + 'USDT', '1d', lookback),
+            this.fetchKlines(borrow     + 'USDT', '1d', lookback)
+          ]);
+        } catch (err) {
+          console.warn(`Skipping pair ${collateral}/${borrow} due to fetch error`, err);
+          continue;
+        }
 
         const growth = (klines) => {
-          if (!klines || klines.length === 0) return 0;
+          if (!klines || klines.length === 0 || !klines[0][1] || !klines.at(-1)[4]) return 0;
           const open = +klines[0][1], close = +klines.at(-1)[4];
           return (close - open) / open;
         };
