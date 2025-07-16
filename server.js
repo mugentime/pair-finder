@@ -21,16 +21,18 @@ app.use(express.json());
 
 app.post('/api/proxy', async (req, res) => {
   const { route, method, key, secret, params } = req.body;
+  const isSigned = route?.startsWith('/sapi');
   const apiKey = BINANCE_API_KEY || key;
   const apiSecret = BINANCE_API_SECRET || secret;
 
-  if (!route || !apiKey || !apiSecret) {
-    return res.status(400).json({ error: 'Missing required parameters' });
+  if (!route) {
+    return res.status(400).json({ error: 'Missing route' });
+  }
+  if (isSigned && (!apiKey || !apiSecret)) {
+    return res.status(400).json({ error: 'Missing API key or secret for signed request' });
   }
 
-  const isSigned = route.startsWith('/sapi');
   let url;
-
   if (isSigned) {
     const timestamp = Date.now();
     const query = new URLSearchParams({ ...params, timestamp }).toString();
@@ -43,6 +45,9 @@ app.post('/api/proxy', async (req, res) => {
 
   try {
     const headers = isSigned ? { 'X-MBX-APIKEY': apiKey } : {};
+    console.log('▶️ Binance request:', url);
+    console.log('Headers:', headers);
+
     const response = await fetch(url, {
       method,
       headers,
@@ -50,11 +55,13 @@ app.post('/api/proxy', async (req, res) => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Binance API error:', data);
       return res.status(response.status).json({ error: data });
     }
 
     res.json(data);
   } catch (error) {
+    console.error('❌ Network or fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch Binance API', details: error.message });
   }
 });
