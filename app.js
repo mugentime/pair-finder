@@ -1,7 +1,4 @@
-/**
- * Front-end logic: fetches data via the proxy,
- * computes the composite score, and renders a table.
- */
+// app.js
 const app = {
   proxy(route, method = 'GET', params = {}) {
     const key    = document.getElementById('apiKey').value.trim();
@@ -14,7 +11,7 @@ const app = {
   },
 
   fetchSimpleEarn()   { return this.proxy('/sapi/v1/simple-earn/flexible/list', 'GET', { size: 200 }); },
-  fetchLoanable()     { return this.proxy('/sapi/v2/loan/flexible/loanable/data', 'GET'); },       // [28]
+  fetchLoanable()     { return this.proxy('/sapi/v2/loan/flexible/loanable/data', 'GET'); },
   fetchPrice(symbol)  { return fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`).then(r => r.json()); },
   fetchKlines(symbol, interval='1d', limit=30) {
     return fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`).then(r => r.json());
@@ -26,18 +23,21 @@ const app = {
 
     const [earn, loan] = await Promise.all([this.fetchSimpleEarn(), this.fetchLoanable()]);
 
-    // Map APR and borrow cost
+    if (!earn?.data?.rows || !loan?.rows) {
+      document.getElementById('results').innerText = 'API call failed or returned unexpected format.';
+      console.error('Earn:', earn, 'Loan:', loan);
+      return;
+    }
+
     const aprMap   = Object.fromEntries(earn.data.rows.map(r => [r.asset, +r.realtimeApr]));
     const borrowMap= Object.fromEntries(loan.rows.map(r => [r.loanCoin, +r.flexibleInterestRate]));
 
-    // Build non-identical pairs
     const symbols  = Object.keys(aprMap);
     const pairs    = [];
     for (const collateral of symbols) {
       for (const borrow of Object.keys(borrowMap)) {
         if (collateral === borrow) continue;
 
-        // price growth
         const [cK, bK] = await Promise.all([
           this.fetchKlines(collateral + 'USDT', '1d', lookback),
           this.fetchKlines(borrow     + 'USDT', '1d', lookback)
