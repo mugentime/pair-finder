@@ -12,9 +12,9 @@ const app = {
 
   fetchSimpleEarn()   { return this.proxy('/sapi/v1/simple-earn/flexible/list', 'GET', { size: 200 }); },
   fetchLoanable()     { return this.proxy('/sapi/v2/loan/flexible/loanable/data', 'GET'); },
-  fetchPrice(symbol)  { return fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`).then(r => r.json()); },
+  fetchPrice(symbol)  { return this.proxy('/api/v3/ticker/price', 'GET', { symbol }); },
   fetchKlines(symbol, interval='1d', limit=30) {
-    return fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`).then(r => r.json());
+    return this.proxy('/api/v3/klines', 'GET', { symbol, interval, limit });
   },
 
   async fetchAndRank() {
@@ -49,6 +49,7 @@ const app = {
         ]);
 
         const growth = (klines) => {
+          if (!klines || klines.length === 0) return 0;
           const open = +klines[0][1], close = +klines.at(-1)[4];
           return (close - open) / open;
         };
