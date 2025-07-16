@@ -42,11 +42,10 @@ app.post('/api/proxy', async (req, res) => {
   }
 
   try {
+    const headers = isSigned ? { 'X-MBX-APIKEY': apiKey } : {};
     const response = await fetch(url, {
       method,
-      headers: {
-        'X-MBX-APIKEY': apiKey,
-      },
+      headers,
     });
     const data = await response.json();
 
