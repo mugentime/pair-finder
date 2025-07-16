@@ -1,43 +1,38 @@
-/**
- * Simple Express proxy that signs and relays Binance
- * API requests so the browser never hits CORS blocks.
- */
-const express = require('express');
-const crypto  = require('crypto');
-const axios   = require('axios');
-const cors    = require('cors');
+// server.js
+import express from 'express';
+import fetch from 'node-fetch';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import cors from 'cors';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());            // tighten this in production
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.static(path.join(__dirname)));
 app.use(express.json());
 
-function sign(qs, secret) {
-  return crypto.createHmac('sha256', secret).update(qs).digest('hex');
-}
-
-async function callBinance({ route, method, key, secret, params = {}, body = {} }) {
-  const timestamp = Date.now();
-  const query     = new URLSearchParams({ ...params, timestamp }).toString();
-  const signature = sign(query, secret);
-  const url       = `https://api.binance.com${route}?${query}&signature=${signature}`;
-
-  return axios.request({
-    url,
-    method,
-    headers: { 'X-MBX-APIKEY': key },
-    data: body
-  });
-}
-
+// Proxy route to access Binance API securely
 app.post('/api/proxy', async (req, res) => {
+  const { route, method, key, secret, params } = req.body;
+  const queryString = new URLSearchParams(params).toString();
+  const url = `https://api.binance.com${route}?${queryString}`;
+
   try {
-    const { route, method = 'GET', key, secret, params, body } = req.body;
-    const { data } = await callBinance({ route, method, key, secret, params, body });
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'X-MBX-APIKEY': key,
+      },
+    });
+    const data = await response.json();
     res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message, detail: err.response?.data });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch Binance API' });
   }
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Proxy running on :${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
