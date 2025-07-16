@@ -28,10 +28,18 @@ app.post('/api/proxy', async (req, res) => {
     return res.status(400).json({ error: 'Missing required parameters' });
   }
 
-  const timestamp = Date.now();
-  const query = new URLSearchParams({ ...params, timestamp }).toString();
-  const signature = crypto.createHmac('sha256', apiSecret).update(query).digest('hex');
-  const url = `https://api.binance.com${route}?${query}&signature=${signature}`;
+  const isSigned = route.startsWith('/sapi');
+  let url;
+
+  if (isSigned) {
+    const timestamp = Date.now();
+    const query = new URLSearchParams({ ...params, timestamp }).toString();
+    const signature = crypto.createHmac('sha256', apiSecret).update(query).digest('hex');
+    url = `https://api.binance.com${route}?${query}&signature=${signature}`;
+  } else {
+    const query = new URLSearchParams(params).toString();
+    url = `https://api.binance.com${route}?${query}`;
+  }
 
   try {
     const response = await fetch(url, {
