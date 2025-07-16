@@ -1,120 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Binance Optimal Pair Finder</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Binance Optimal Pair Finder</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!--
-    README: Binance API Setup Instructions
+  <h1>Binance Optimal Pair Finder</h1>
 
-    1. Create API Key:
-       - Log into Binance → Account → API Management
-       - Create New Key with ONLY "Enable Reading" permission
-       - Save API Key and Secret Key securely
+  <div class="controls">
+    <input id="apiKey"   placeholder="API Key">
+    <input id="apiSecret" placeholder="API Secret" type="password">
+    <input id="lookback"  type="number" value="30" min="1" max="90">
+    <button onclick="app.fetchAndRank()">Fetch & Rank</button>
+  </div>
 
-    2. CORS Setup (if needed):
-       - Install browser extension like "CORS Unblock" or "CORS Everywhere"
-       - Enable it before using this app
-       - Alternative: Use Binance Testnet API for testing
-
-    3. Security:
-       - Only use API keys with read-only permissions
-       - Never share your API credentials
-       - This app keeps credentials in memory only
-    -->
-
-    <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <h1>Binance Optimal Pair Finder</h1>
-            <p class="subtitle">Find the best collateral/borrow pairs based on APR and price growth</p>
-        </header>
-
-        <!-- Settings Panel -->
-        <div class="settings-panel" id="settingsPanel">
-            <div class="settings-header">
-                <h3>Settings & Credentials</h3>
-                <button class="btn btn--secondary btn--sm" id="toggleSettings">
-                    <span id="toggleText">Hide</span>
-                </button>
-            </div>
-
-            <div class="settings-content" id="settingsContent">
-                <div class="form-group">
-                    <label class="form-label" for="apiKey">Binance API Key</label>
-                    <input type="text" class="form-control" id="apiKey" placeholder="Enter your API key">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="apiSecret">Binance Secret Key</label>
-                    <input type="password" class="form-control" id="apiSecret" placeholder="Enter your secret key">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="lookbackDays">Look-back Days</label>
-                    <input type="number" class="form-control" id="lookbackDays" value="30" min="1" max="365">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="maxPairs">Max Pairs to Evaluate</label>
-                    <input type="number" class="form-control" id="maxPairs" value="25" min="1" max="100">
-                </div>
-
-                <button class="btn btn--primary btn--full-width" id="fetchButton">
-                    <span id="fetchButtonText">Fetch & Rank</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Loading Spinner -->
-        <div class="loading-container hidden" id="loadingContainer">
-            <div class="spinner"></div>
-            <p>Fetching data from Binance API...</p>
-        </div>
-
-        <!-- Results Table -->
-        <div class="results-container hidden" id="resultsContainer">
-            <div class="table-container">
-                <table class="results-table" id="resultsTable">
-                    <thead>
-                        <tr>
-                            <th data-sort="collateralAsset">Collateral Asset <span class="sort-indicator"></span></th>
-                            <th data-sort="collateralAPR">Collateral APR (%) <span class="sort-indicator"></span></th>
-                            <th data-sort="borrowAsset">Borrow Asset <span class="sort-indicator"></span></th>
-                            <th data-sort="borrowAPR">Borrow APR (%) <span class="sort-indicator"></span></th>
-                            <th data-sort="collateralGrowth">Collateral Growth (%) <span class="sort-indicator"></span></th>
-                            <th data-sort="borrowGrowth">Borrow Growth (%) <span class="sort-indicator"></span></th>
-                            <th data-sort="compositeScore">Composite Score <span class="sort-indicator">↓</span></th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsBody">
-                        <!-- Results will be populated here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Modal for Row Details -->
-        <div class="modal-overlay hidden" id="modalOverlay">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3 id="modalTitle">Pair Details</h3>
-                    <button class="btn btn--secondary btn--sm" id="closeModal">×</button>
-                </div>
-                <div class="modal-body" id="modalBody">
-                    <!-- Modal content will be populated here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Toast Notifications -->
-        <div class="toast-container" id="toastContainer"></div>
-    </div>
-
-    <script src="app.js"></script>
+  <div id="results"></div>
+  <script src="app.js"></script>
 </body>
 </html>
