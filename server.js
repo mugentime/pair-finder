@@ -4,6 +4,7 @@ import fetch from 'node-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,11 +16,13 @@ app.use(cors());
 app.use(express.static(path.join(__dirname)));
 app.use(express.json());
 
-// Proxy route to access Binance API securely
 app.post('/api/proxy', async (req, res) => {
   const { route, method, key, secret, params } = req.body;
-  const queryString = new URLSearchParams(params).toString();
-  const url = `https://api.binance.com${route}?${queryString}`;
+  const timestamp = Date.now();
+
+  const query = new URLSearchParams({ ...params, timestamp }).toString();
+  const signature = crypto.createHmac('sha256', secret).update(query).digest('hex');
+  const url = `https://api.binance.com${route}?${query}&signature=${signature}`;
 
   try {
     const response = await fetch(url, {
@@ -29,9 +32,14 @@ app.post('/api/proxy', async (req, res) => {
       },
     });
     const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: data });
+    }
+
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch Binance API' });
+    res.status(500).json({ error: 'Failed to fetch Binance API', details: error.message });
   }
 });
 
