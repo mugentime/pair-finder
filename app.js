@@ -23,14 +23,19 @@ const app = {
 
     const [earn, loan] = await Promise.all([this.fetchSimpleEarn(), this.fetchLoanable()]);
 
-    if (!earn?.data?.rows || !loan?.rows) {
+    console.log('Earn response:', earn);
+    console.log('Loan response:', loan);
+
+    const earnRows = earn?.data?.rows || earn?.rows;
+    const loanRows = loan?.rows || loan?.data?.rows;
+
+    if (!earnRows || !loanRows) {
       document.getElementById('results').innerText = 'API call failed or returned unexpected format.';
-      console.error('Earn:', earn, 'Loan:', loan);
       return;
     }
 
-    const aprMap   = Object.fromEntries(earn.data.rows.map(r => [r.asset, +r.realtimeApr]));
-    const borrowMap= Object.fromEntries(loan.rows.map(r => [r.loanCoin, +r.flexibleInterestRate]));
+    const aprMap   = Object.fromEntries(earnRows.map(r => [r.asset, +r.realtimeApr]));
+    const borrowMap= Object.fromEntries(loanRows.map(r => [r.loanCoin, +r.flexibleInterestRate]));
 
     const symbols  = Object.keys(aprMap);
     const pairs    = [];
