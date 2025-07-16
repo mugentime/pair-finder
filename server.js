@@ -12,23 +12,32 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const BINANCE_API_KEY = process.env.BINANCE_API_KEY;
+const BINANCE_API_SECRET = process.env.BINANCE_API_SECRET;
+
 app.use(cors());
 app.use(express.static(path.join(__dirname)));
 app.use(express.json());
 
 app.post('/api/proxy', async (req, res) => {
   const { route, method, key, secret, params } = req.body;
-  const timestamp = Date.now();
+  const apiKey = BINANCE_API_KEY || key;
+  const apiSecret = BINANCE_API_SECRET || secret;
 
+  if (!route || !apiKey || !apiSecret) {
+    return res.status(400).json({ error: 'Missing required parameters' });
+  }
+
+  const timestamp = Date.now();
   const query = new URLSearchParams({ ...params, timestamp }).toString();
-  const signature = crypto.createHmac('sha256', secret).update(query).digest('hex');
+  const signature = crypto.createHmac('sha256', apiSecret).update(query).digest('hex');
   const url = `https://api.binance.com${route}?${query}&signature=${signature}`;
 
   try {
     const response = await fetch(url, {
       method,
       headers: {
-        'X-MBX-APIKEY': key,
+        'X-MBX-APIKEY': apiKey,
       },
     });
     const data = await response.json();
